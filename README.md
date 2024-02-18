@@ -1,5 +1,6 @@
 # Project 5
 Needleman Wunsch Algorithm
+![Tests](https://github.com/BennyKrup/HW5-NW/actions/workflows/test.yml/badge.svg)
 
 
 # Assignment Overview

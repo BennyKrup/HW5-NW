@@ -14,7 +14,24 @@ def test_nw_alignment():
     """
     seq1, _ = read_fasta("./data/test_seq1.fa")
     seq2, _ = read_fasta("./data/test_seq2.fa")
-    pass
+    nw = NeedlemanWunsch("substitution_matrices/BLOSUM62.mat", -10, -1)
+    score, align1, align2 = nw.align(seq1, seq2)
+
+    #set the manual alignemnt to compare to
+    manual_align1 = "MYQR"
+    manual_align2 = "M-QR"
+    print (manual_align1, manual_align2)
+    print(align1, align2)
+    #print the matrices
+    print(nw._align_matrix)
+    print(nw._gapA_matrix)
+    print(nw._gapB_matrix)
+    print(nw._back)
+    #assert that the alignment is correct
+    assert align1 == manual_align1
+    assert align2 == manual_align2
+    print(score)
+
     
 
 def test_nw_backtrace():
@@ -27,7 +44,19 @@ def test_nw_backtrace():
     """
     seq3, _ = read_fasta("./data/test_seq3.fa")
     seq4, _ = read_fasta("./data/test_seq4.fa")
-    pass
+
+    nw = NeedlemanWunsch("substitution_matrices/BLOSUM62.mat", -10, -1)
+    score, align1, align2 = nw.align(seq3, seq4)
+    manual_align1 = "MAVHQLIRRP"
+    manual_align2 = "M---QLIRHP"
+    print (manual_align1, manual_align2)
+    print(align1, align2)
+    #assert that the alignment and backtracing are correct
+    assert align1 == manual_align1
+    assert align2 == manual_align2
+    #assert that the score is correct
+    assert score == 17
+    print(score)
 
 
 

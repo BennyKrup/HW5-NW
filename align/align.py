@@ -127,13 +127,67 @@ class NeedlemanWunsch:
         self._seqB = seqB
         
         # TODO: Initialize matrix private attributes for use in alignment
-        # create matrices for alignment scores, gaps, and backtracing
-        pass
-
+        # matrices for alignment scores, gaps, and backtracing
+        m, n = len(seqA), len(seqB)
+        self._align_matrix = np.zeros((m + 1, n + 1))
+        self._gapA_matrix = np.full((m + 1, n + 1), float('-inf'))
+        self._gapB_matrix = np.full((m + 1, n + 1), float('-inf'))
+        self._back = np.zeros((m + 1, n + 1), dtype=object)
         
         # TODO: Implement global alignment here
-        pass      		
-        		    
+        for i in range(1, m + 1):
+            self._align_matrix[i][0] = self.gap_open + (i - 1) * self.gap_extend
+            self._gapA_matrix[i][0] = self.gap_open + (i - 1) * self.gap_extend
+            self._back[i][0] = 'Up'  # setting the direction for backtracing
+        for j in range(1, n + 1):
+            self._align_matrix[0][j] = self.gap_open + (j - 1) * self.gap_extend
+            self._gapB_matrix[0][j] = self.gap_open + (j - 1) * self.gap_extend
+            self._back[0][j] = 'Left'
+
+        # Fill matrices
+        for i in range(1, m + 1):
+            for j in range(1, n + 1):
+                # Match/mismatch score
+                try:
+                    match_score = self.sub_dict[(seqA[i-1], seqB[j-1])]
+                except KeyError: # if for some reason the pair does not exist in the substitution matrix
+                    raise ValueError(f"No match score for pair: {seqA[i-1]}, {seqB[j-1]}. Check your substitution matrix and/or input sequences.")
+
+
+                # Diagonal scoring
+                from_diag = self._align_matrix[i-1][j-1] + match_score
+                from_up = self._gapA_matrix[i-1][j-1] + match_score
+                from_left = self._gapB_matrix[i-1][j-1] + match_score
+
+                # Update alignment matrix
+                self._align_matrix[i][j] = max(from_diag, from_up, from_left)
+
+                # Update gap matrices
+                self._gapA_matrix[i][j] = max(
+                    self._align_matrix[i-1][j] + self.gap_open + self.gap_extend,  # Open new gap
+                    self._gapA_matrix[i-1][j] + self.gap_extend  # Extend gap
+                )
+
+                self._gapB_matrix[i][j] = max(
+                    self._align_matrix[i][j-1] + self.gap_open + self.gap_extend,  # Open new gap
+                    self._gapB_matrix[i][j-1] + self.gap_extend  # Extend gap
+                )
+
+                # Update backtrace matrix
+                max_score = max(self._align_matrix[i][j], self._gapA_matrix[i][j], self._gapB_matrix[i][j])
+                if max_score == self._align_matrix[i][j]:
+                    self._back[i][j] = 'Diagonal'
+                elif max_score == self._gapA_matrix[i][j]:
+                    self._back[i][j] = 'Up'
+                elif max_score == self._gapB_matrix[i][j]:
+                    self._back[i][j] = 'Left'
+
+        # Set an alignment score from the bottom-right cell
+        self.alignment_score = self._align_matrix[m][n]
+
+
+
+        #continue to backtracing and calculating the alignment score	    
         return self._backtrace()
 
     def _backtrace(self) -> Tuple[float, str, str]:
@@ -150,7 +204,26 @@ class NeedlemanWunsch:
          	(alignment score, seqA alignment, seqB alignment) : Tuple[float, str, str]
          		the score and corresponding strings for the alignment of seqA and seqB
         """
-        pass
+        i, j = len(self._seqA), len(self._seqB)
+        self.seqA_align, self.seqB_align = '', ''
+
+        while i > 0 or j > 0:
+            if self._back[i][j] == 'Diagonal':
+                self.seqA_align = self._seqA[i-1] + self.seqA_align
+                self.seqB_align = self._seqB[j-1] + self.seqB_align
+                i -= 1
+                j -= 1
+            elif self._back[i][j] == 'Up': # insert gap in B
+                self.seqA_align = self._seqA[i-1] + self.seqA_align
+                self.seqB_align = '-' + self.seqB_align
+                i -= 1
+            elif self._back[i][j] == 'Left': # insert gap in A
+                self.seqA_align = '-' + self.seqA_align
+                self.seqB_align = self._seqB[j-1] + self.seqB_align
+                j -= 1
+            else:
+                raise ValueError("Invalid direction in backtrace matrix.")
+
 
         return (self.alignment_score, self.seqA_align, self.seqB_align)
 
